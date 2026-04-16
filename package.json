@@ -1,9 +1,13 @@
 {
   "name": "landbook-parser",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "worker.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node worker.js",
+    "worker": "node worker.js",
+    "status": "node server.js",
+    "db:reset": "node scripts/reset-db.js",
+    "test": "node -e \"console.log('no tests')\""
   },
   "keywords": [],
   "author": "",
@@ -11,6 +15,9 @@
   "description": "",
   "dependencies": {
     "dotenv": "^17.4.1",
-    "puppeteer": "^24.40.0"
+    "puppeteer": "^24.40.0",
+    "puppeteer-real-browser": "^1.4.4",
+    "sharp": "^0.34.5",
+    "sql.js": "^1.14.1"
   }
 }

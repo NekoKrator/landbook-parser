@@ -1,0 +1,26 @@
+services:
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['npm', 'run', 'worker']
+    env_file:
+      - .env.docker
+    volumes:
+      - ./data:/app/data
+      - ./images:/app/images
+    restart: unless-stopped
+
+  status:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['npm', 'run', 'status']
+    env_file:
+      - .env.docker
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./data:/app/data
+      - ./images:/app/images
+    restart: unless-stopped
