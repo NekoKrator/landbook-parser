@@ -9,7 +9,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ['xvfb-run', '--auto-servernum', 'npm', 'run', 'worker']
+    command:
+      [
+        'bash',
+        '-c',
+        'xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run worker 2>&1',
+      ]
     env_file:
       - .env.docker
     volumes:
