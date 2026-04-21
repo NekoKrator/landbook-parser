@@ -1,0 +1,13 @@
+node_modules
+screenshots
+logs
+result.json
+results.json
+cookies.json
+.env
+.env.docker
+.npmrc
+D:/npm-cache
+D:/npm-tmp
+data/
+images/

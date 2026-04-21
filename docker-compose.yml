@@ -1,14 +1,22 @@
 services:
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ['npm', 'run', 'worker']
+    command: ['xvfb-run', '--auto-servernum', 'npm', 'run', 'worker']
     env_file:
       - .env.docker
     volumes:
       - ./data:/app/data
       - ./images:/app/images
+    depends_on:
+      - flaresolverr
     restart: unless-stopped
 
   status:

@@ -2,11 +2,13 @@ FROM node:22-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV HEADLESS=true
+ENV HEADLESS=false
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     chromium \
+    xvfb \
+    xauth \
     ca-certificates \
     fonts-liberation \
     libasound2 \
@@ -36,4 +38,4 @@ COPY . .
 
 RUN mkdir -p /app/data /app/images
 
-CMD ["npm", "run", "worker"]
+CMD ["xvfb-run", "--auto-servernum", "--server-args=-screen 0 1920x1080x24", "npm", "run", "worker"]

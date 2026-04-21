@@ -1,4 +1,5 @@
 ﻿require('dotenv').config();
+const { getCfClearance } = require('./cfClearance');
 
 const fs = require('fs/promises');
 const path = require('path');
@@ -71,7 +72,9 @@ async function parseNestedCasePages(browser, pages, parentUrl, dir) {
     const childPage = await browser.newPage();
 
     try {
-      const childData = await parsePost(childPage, item.url, { includePages: false });
+      const childData = await parsePost(childPage, item.url, {
+        includePages: false,
+      });
       if (!childData?.id) {
         parsedPages.push({
           ...item,
@@ -86,7 +89,10 @@ async function parseNestedCasePages(browser, pages, parentUrl, dir) {
         const childDir = path.join(dir, 'pages', childData.id);
         await fs.mkdir(childDir, { recursive: true });
         const childPath = path.join(childDir, 'desktop.webp');
-        childUpload = await downloadAndUploadImage(childData.full_image_url, childPath);
+        childUpload = await downloadAndUploadImage(
+          childData.full_image_url,
+          childPath,
+        );
       }
 
       parsedPages.push(
@@ -171,6 +177,7 @@ async function loginIfNeeded(page) {
 }
 
 async function sendToX6Sense({ postData, desktopUpload, sourceUrl }) {
+  log(`SKIP_DELIVERY=${process.env.SKIP_DELIVERY}`);
   if (process.env.SKIP_DELIVERY === 'true') {
     log('Delivery skipped (SKIP_DELIVERY=true)');
     return { ok: true, skipped: true };
@@ -240,6 +247,10 @@ async function processPost(browser, item) {
   const page = await browser.newPage();
 
   try {
+    const { cookies, userAgent } = await getCfClearance(url);
+    await page.setUserAgent(userAgent);
+    await page.setCookie(...cookies);
+
     const postData = await parsePost(page, url);
 
     if (!postData?.id) {
@@ -256,12 +267,18 @@ async function processPost(browser, item) {
 
     if (postData.full_image_url) {
       desktopPath = path.join(dir, 'desktop.webp');
-      desktopUpload = await downloadAndUploadImage(postData.full_image_url, desktopPath);
+      desktopUpload = await downloadAndUploadImage(
+        postData.full_image_url,
+        desktopPath,
+      );
     }
 
     if (postData.mobile_image_url) {
       mobilePath = path.join(dir, 'mobile.webp');
-      mobileUpload = await downloadAndUploadImage(postData.mobile_image_url, mobilePath);
+      mobileUpload = await downloadAndUploadImage(
+        postData.mobile_image_url,
+        mobilePath,
+      );
     }
 
     const nestedPages = await parseNestedCasePages(
@@ -287,18 +304,26 @@ async function processPost(browser, item) {
     };
 
     const { full_image_url, mobile_image_url, ...rest } = postData;
+    log(
+      `Sending to x6sense: ${url}, desktopUpload: ${JSON.stringify(desktopUpload)}`,
+    );
     const delivery = await sendToX6Sense({
       postData: {
         ...rest,
         likes,
-        desktop_image_url: desktopUpload ? desktopUpload.url || desktopUpload.webpUrl || null : null,
-        mobile_image_url: mobileUpload ? mobileUpload.url || mobileUpload.webpUrl || null : null,
+        desktop_image_url: desktopUpload
+          ? desktopUpload.url || desktopUpload.webpUrl || null
+          : null,
+        mobile_image_url: mobileUpload
+          ? mobileUpload.url || mobileUpload.webpUrl || null
+          : null,
         case: caseData,
       },
       desktopUpload,
       sourceUrl: url,
       likes,
     });
+    log(`Delivery result: ${JSON.stringify(delivery)}`);
 
     if (delivery.ok) {
       if (delivery.skipped) {
@@ -343,6 +368,16 @@ async function processPost(browser, item) {
 
       await recordDeliverySuccess();
       await cleanupLocalImages([desktopPath, mobilePath], dir);
+
+      return {
+        ...rest,
+        likes,
+        images: {
+          desktop: desktopPath,
+          mobile: mobilePath,
+        },
+        delivery,
+      };
     } else {
       await recordDeliveryFailure();
     }
@@ -371,4 +406,3 @@ module.exports = {
   sendToX6Sense,
   processPost,
 };
-

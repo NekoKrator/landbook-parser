@@ -1,4 +1,5 @@
-﻿const { log } = require('./logger');
+﻿const { log } = require("./logger");
+const { getCfClearance } = require("./cfClearance");
 
 const BASE_URL = 'https://land-book.com';
 
@@ -46,6 +47,11 @@ async function collectLinks(page, limit = 200, processedIds = new Set()) {
   const seen = new Set();
   const firstUrl = `${BASE_URL}/?sort=like&from=all`;
 
+  // получаем clearance до открытия страницы
+  const { cookies, userAgent } = await getCfClearance(firstUrl);
+  await page.setUserAgent(userAgent);
+  await page.setCookie(...cookies);
+
   log(`Opening list: ${firstUrl}`);
 
   await page.goto(firstUrl, {
@@ -55,10 +61,11 @@ async function collectLinks(page, limit = 200, processedIds = new Set()) {
 
   await page
     .waitForSelector('[data-analytics-item-id]', {
-      timeout: 15000,
+      timeout: 30000,
     })
-    .catch(() => {
+    .catch(async () => {
       log('Warning: no cards found');
+      await page.screenshot({ path: '/app/data/debug.png' });
     });
 
   let pageNum = 1;
@@ -106,6 +113,4 @@ async function collectLinks(page, limit = 200, processedIds = new Set()) {
   return items.slice(0, limit);
 }
 
-module.exports = {
-  collectLinks,
-};
+module.exports = { collectLinks };

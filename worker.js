@@ -8,11 +8,7 @@ const { connect } = require('puppeteer-real-browser');
 
 const { log, error } = require('./logger');
 const { collectLinks } = require('./listParser');
-const {
-  loginIfNeeded,
-  processPost,
-  sleep,
-} = require('./index');
+const { loginIfNeeded, processPost, sleep } = require('./index');
 const {
   getProcessedPostIds,
   getTodayProcessedCount,
@@ -27,6 +23,25 @@ const RETRY_SLEEP_MS = Number(process.env.RETRY_SLEEP_MS || 30000);
 const HEADLESS = process.env.HEADLESS === 'true';
 const WORKER_TEMP_DIR =
   process.env.WORKER_TEMP_DIR || path.join(os.tmpdir(), 'landbook-parser');
+
+function getProxyConfig() {
+  const host = process.env.PROXY_HOST?.trim();
+  const portRaw = process.env.PROXY_PORT?.trim();
+
+  if (!host) return null;
+
+  const port = Number(portRaw);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid PROXY_PORT: ${portRaw || 'empty'}`);
+  }
+
+  return {
+    host,
+    port,
+    username: process.env.PROXY_USER?.trim() || undefined,
+    password: process.env.PROXY_PASS?.trim() || undefined,
+  };
+}
 
 try {
   fsSync.mkdirSync(WORKER_TEMP_DIR, { recursive: true });
@@ -49,18 +64,28 @@ async function runCycle() {
   const remainingBeforeConnect = DAILY_LIMIT - (await getTodayProcessedCount());
   if (remainingBeforeConnect <= 0) {
     const waitMs = Math.max(msUntilNextDay(), CYCLE_SLEEP_MS);
-    log(`Daily limit reached (${DAILY_LIMIT}), sleeping ${Math.round(waitMs / 1000)}s`);
+    log(
+      `Daily limit reached (${DAILY_LIMIT}), sleeping ${Math.round(waitMs / 1000)}s`,
+    );
     return waitMs;
   }
 
   let browser = null;
   let page = null;
-
-  ({ browser, page } = await connect({
+  const proxy = getProxyConfig();
+  const connectOptions = {
     headless: HEADLESS,
     turnstile: true,
+    disableXvfb: false,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  }));
+  };
+
+  if (proxy) {
+    log(`Launching browser with proxy ${proxy.host}:${proxy.port}`);
+    connectOptions.proxy = proxy;
+  }
+
+  ({ browser, page } = await connect(connectOptions));
 
   try {
     await loginIfNeeded(page);
@@ -96,7 +121,7 @@ async function runCycle() {
     }
 
     await fs.writeFile(
-      path.resolve('./results.json'),
+      path.resolve('./data/results.json'),
       JSON.stringify(results, null, 2),
     );
 
@@ -132,4 +157,3 @@ module.exports = {
   runCycle,
   runWorker,
 };
-

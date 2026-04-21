@@ -176,6 +176,10 @@ LANDBOOK_EMAIL=your_email
 LANDBOOK_PASSWORD=your_password
 X6SENSE_API_KEY=your_api_key
 X6SENSE_API_BASE_URL=your_url
+PROXY_HOST=
+PROXY_PORT=
+PROXY_USER=
+PROXY_PASS=
 HEADLESS=false
 SKIP_DELIVERY=false
 LIST_LIMIT=200
@@ -246,6 +250,7 @@ Docker notes:
 - `data/` is mounted as a volume and stores SQLite
 - `images/` is mounted as a volume and stores downloaded images
 - local Windows cache paths are not needed inside Docker
+- browser proxy is optional and can be configured with `PROXY_HOST`, `PROXY_PORT`, `PROXY_USER`, `PROXY_PASS`
 
 ## Useful commands
 
@@ -285,6 +290,10 @@ Main variables:
 - `STATUS_PORT`
 - `PUPPETEER_EXECUTABLE_PATH`
 - `CHROME_PATH`
+- `PROXY_HOST`
+- `PROXY_PORT`
+- `PROXY_USER`
+- `PROXY_PASS`
 
 ## Notes
 
